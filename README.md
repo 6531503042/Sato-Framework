@@ -16,7 +16,7 @@ A progressive Go framework for building efficient and scalable server-side appli
 ## Installation
 
 ```bash
-go get github.com/your-username/sato-framework
+go get github.com/6531503042/sato-framework
 ```
 
 ## Quick Start
@@ -25,7 +25,7 @@ go get github.com/your-username/sato-framework
 package main
 
 import (
-    "github.com/your-username/sato-framework/core"
+    "github.com/6531503042/sato-framework/core"
     "github.com/gofiber/fiber/v2"
 )
 
