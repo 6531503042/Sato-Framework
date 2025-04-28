@@ -23,6 +23,8 @@ func Run() {
 	switch entity {
 	case "module":
 		GenerateModule(name)
+	case "crud":
+		GenerateCRUD(name)
 	default:
 		fmt.Println("Unknown entity:", entity)
 	}
