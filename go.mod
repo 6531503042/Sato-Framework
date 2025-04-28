@@ -3,10 +3,10 @@ module github.com/6531503042/sato-framework
 go 1.21
 
 require (
-	github.com/gofiber/fiber/v2 v2.52.6
-	go.mongodb.org/mongo-driver v1.14.0
 	github.com/go-playground/validator/v10 v10.26.0
+	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/joho/godotenv v1.5.1
+	go.mongodb.org/mongo-driver v1.14.0
 )
 
 require (

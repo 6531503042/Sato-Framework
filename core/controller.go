@@ -1,8 +1,12 @@
 package core
 
 import (
+	"fmt"
 	"reflect"
+	"runtime"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // HTTP Methods
@@ -67,57 +71,80 @@ func Controller(options ControllerOptions) func(c interface{}) interface{} {
 	}
 }
 
-// Get decorator for method
-func Get(options RouteOptions) func(interface{}, string) {
-	return func(target interface{}, propertyKey string) {
-		addRoute(target, RouteMeta{
-			Path:    options.Path,
+// mergeRouteOptions merges route options with defaults
+func mergeRouteOptions(path string, method string, options ...RouteOptions) RouteOptions {
+	opts := RouteOptions{
+		Path:   path,
+		Method: method,
+	}
+	if len(options) > 0 {
+		// Merge with provided options
+		if options[0].Path != "" {
+			opts.Path = options[0].Path
+		}
+		if options[0].Method != "" {
+			opts.Method = options[0].Method
+		}
+	}
+	return opts
+}
+
+// Get registers a GET route
+func Get(path string, options ...RouteOptions) func(interface{}, string, fiber.Handler) {
+	return func(controller interface{}, handlerName string, handlerFunc fiber.Handler) {
+		opts := mergeRouteOptions(path, "GET", options...)
+		addRoute(controller, RouteMeta{
+			Path:    opts.Path,
 			Method:  GET,
-			Handler: propertyKey,
+			Handler: handlerName,
 		})
 	}
 }
 
-// Post decorator for method
-func Post(options RouteOptions) func(interface{}, string) {
-	return func(target interface{}, propertyKey string) {
-		addRoute(target, RouteMeta{
-			Path:    options.Path,
+// Post registers a POST route
+func Post(path string, options ...RouteOptions) func(interface{}, string, fiber.Handler) {
+	return func(controller interface{}, handlerName string, handlerFunc fiber.Handler) {
+		opts := mergeRouteOptions(path, "POST", options...)
+		addRoute(controller, RouteMeta{
+			Path:    opts.Path,
 			Method:  POST,
-			Handler: propertyKey,
+			Handler: handlerName,
 		})
 	}
 }
 
-// Put decorator for method
-func Put(options RouteOptions) func(interface{}, string) {
-	return func(target interface{}, propertyKey string) {
-		addRoute(target, RouteMeta{
-			Path:    options.Path,
+// Put registers a PUT route
+func Put(path string, options ...RouteOptions) func(interface{}, string, fiber.Handler) {
+	return func(controller interface{}, handlerName string, handlerFunc fiber.Handler) {
+		opts := mergeRouteOptions(path, "PUT", options...)
+		addRoute(controller, RouteMeta{
+			Path:    opts.Path,
 			Method:  PUT,
-			Handler: propertyKey,
+			Handler: handlerName,
 		})
 	}
 }
 
-// Delete decorator for method
-func Delete(options RouteOptions) func(interface{}, string) {
-	return func(target interface{}, propertyKey string) {
-		addRoute(target, RouteMeta{
-			Path:    options.Path,
+// Delete registers a DELETE route
+func Delete(path string, options ...RouteOptions) func(interface{}, string, fiber.Handler) {
+	return func(controller interface{}, handlerName string, handlerFunc fiber.Handler) {
+		opts := mergeRouteOptions(path, "DELETE", options...)
+		addRoute(controller, RouteMeta{
+			Path:    opts.Path,
 			Method:  DELETE,
-			Handler: propertyKey,
+			Handler: handlerName,
 		})
 	}
 }
 
-// Patch decorator for method
-func Patch(options RouteOptions) func(interface{}, string) {
-	return func(target interface{}, propertyKey string) {
-		addRoute(target, RouteMeta{
-			Path:    options.Path,
+// Patch registers a PATCH route
+func Patch(path string, options ...RouteOptions) func(interface{}, string, fiber.Handler) {
+	return func(controller interface{}, handlerName string, handlerFunc fiber.Handler) {
+		opts := mergeRouteOptions(path, "PATCH", options...)
+		addRoute(controller, RouteMeta{
+			Path:    opts.Path,
 			Method:  PATCH,
-			Handler: propertyKey,
+			Handler: handlerName,
 		})
 	}
 }
@@ -191,5 +218,48 @@ func ApplyPipes(value interface{}, pipes []PipeMeta) (interface{}, error) {
 	}
 	
 	return result, nil
+}
+
+// RegisterRoute adds a new route to the controller's metadata
+func RegisterRoute(controller interface{}, opts RouteOptions, handler fiber.Handler) {
+	if c, ok := controller.(interface{ GetMeta() *ControllerMeta }); ok {
+		meta := c.GetMeta()
+		route := RouteMeta{
+			Path:    opts.Path,
+			Method:  opts.Method,
+			Handler: runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name(),
+			Guards:  make([]Guard, 0),
+		}
+		meta.Routes = append(meta.Routes, route)
+	}
+}
+
+// RegisterGuard adds a guard to the controller's metadata
+func RegisterGuard(controller interface{}, guard Guard) {
+	if c, ok := controller.(interface{ GetMeta() *ControllerMeta }); ok {
+		meta := c.GetMeta()
+		meta.Guards = append(meta.Guards, guard)
+	}
+}
+
+// validateControllerMeta validates the controller metadata
+func validateControllerMeta(meta *ControllerMeta) error {
+	if meta.Path == "" {
+		return fmt.Errorf("controller path cannot be empty")
+	}
+	if !strings.HasPrefix(meta.Path, "/") {
+		return fmt.Errorf("controller path must start with /")
+	}
+	return nil
+}
+
+// findRoute finds a route by path and method
+func findRoute(routes []RouteMeta, path string, method string) *RouteMeta {
+	for _, r := range routes {
+		if r.Path == path && r.Method == method {
+			return &r
+		}
+	}
+	return nil
 }
 
